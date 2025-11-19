@@ -95,6 +95,8 @@ class RslRlDistillationAlgorithmCfg:
 
     loss_type: Literal["mse", "huber"] = "mse"
     """The loss type to use for the student policy."""
+    imitation_dataset_path: str = MISSING
+    """The path to the dataset used for imitation learning."""
 
 
 #########################

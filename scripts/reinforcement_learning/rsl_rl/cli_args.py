@@ -37,6 +37,12 @@ def add_rsl_rl_args(parser: argparse.ArgumentParser):
     arg_group.add_argument(
         "--log_project_name", type=str, default=None, help="Name of the logging project when using wandb or neptune."
     )
+    arg_group.add_argument(
+        "--warmstart", action="store_true", default=False, help="Whether to warmstart from a checkpoint."
+    )
+    arg_group.add_argument(
+        "--warmstart_checkpoint_path", type=str, default=None, help="Checkpoint file to warmstart from."
+    )
 
 
 def parse_rsl_rl_cfg(task_name: str, args_cli: argparse.Namespace) -> RslRlBaseRunnerCfg:
@@ -79,6 +85,10 @@ def update_rsl_rl_cfg(agent_cfg: RslRlBaseRunnerCfg, args_cli: argparse.Namespac
         agent_cfg.load_run = args_cli.load_run
     if args_cli.checkpoint is not None:
         agent_cfg.load_checkpoint = args_cli.checkpoint
+    if args_cli.warmstart is not None:
+        agent_cfg.warmstart = args_cli.warmstart
+    if args_cli.warmstart_checkpoint_path is not None:
+        agent_cfg.warmstart_checkpoint_path = args_cli.warmstart_checkpoint_path
     if args_cli.run_name is not None:
         agent_cfg.run_name = args_cli.run_name
     if args_cli.logger is not None:

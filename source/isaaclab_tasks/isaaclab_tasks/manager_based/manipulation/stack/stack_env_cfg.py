@@ -20,6 +20,66 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from . import mdp
+from isaaclab.managers import RewardTermCfg as RewTerm
+
+@configclass
+class CommandsCfg:
+    """Command terms for the MDP."""
+
+    # Command for desired object goal pose expressed in robot base frame
+    # This is used by object_goal_distance reward to compute distance between
+    # an object's world-space position and the commanded goal pose.
+    object_goal = mdp.UniformPoseCommandCfg(
+        asset_name="robot",
+        body_name=MISSING,  # will be set by agent env cfg
+        resampling_time_range=(5.0, 5.0),
+        debug_vis=False,
+        ranges=mdp.UniformPoseCommandCfg.Ranges(
+            pos_x=(0.4, 0.6), pos_y=(-0.25, 0.25), pos_z=(0.02, 0.25), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+        ),
+    )
+
+@configclass
+class RewardsCfg:
+    """Reward terms for the stacking MDP."""
+
+    # action penalty
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-4)
+
+    joint_vel = RewTerm(
+        func=mdp.joint_vel_l2,
+        weight=-1e-4,
+        params={"asset_cfg": SceneEntityCfg("robot")},
+    )
+
+    reaching_top_cube = RewTerm(
+        func=mdp.top_cube_ee_distance,
+        params={"std": 0.1},
+        weight=1.0,
+    )
+
+    stacking_cubes = RewTerm(
+        func=mdp.cubes_are_stacked,
+        params={"minimal_height": 0.04},
+        weight=15.0,
+    )
+
+    # Reward for moving a specified object towards the commanded goal pose
+    object_goal_tracking = RewTerm(
+        func=mdp.object_goal_distance,
+        params={
+            "std": 0.1,
+            "minimal_height": 0.02,
+            "command_name": "object_goal",
+            "robot_cfg": SceneEntityCfg("robot"),
+            "object_cfg": SceneEntityCfg("cube_3"),
+        },
+        weight=1.0,
+    )
+
+    # action penalty (optional, similar to lift)
+    # action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-4)
+    # joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-1e-4, params={"asset_cfg": SceneEntityCfg("robot")})
 
 
 ##
@@ -171,10 +231,10 @@ class StackEnvCfg(ManagerBasedRLEnvCfg):
     actions: ActionsCfg = ActionsCfg()
     # MDP settings
     terminations: TerminationsCfg = TerminationsCfg()
+    rewards: RewardsCfg = RewardsCfg()
+    commands: CommandsCfg = CommandsCfg()
 
     # Unused managers
-    commands = None
-    rewards = None
     events = None
     curriculum = None
 
@@ -197,3 +257,5 @@ class StackEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
         self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024
         self.sim.physx.friction_correlation_distance = 0.00625
+
+        self.commands.object_goal.body_name = "panda_hand"
